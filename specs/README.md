@@ -9,5 +9,7 @@ Desarrollo guiado por especificación, sin atarse a un asistente. El punto de en
 | [003-consulta-por-lugar](003-consulta-por-lugar/spec.md) | implementada en el motor | Cualquier coordenada, los próximos 7 días, mismo índice |
 | [004-suelos-satelite](004-suelos-satelite/spec.md) | implementada en el motor | Carta de suelos del INTA, cobertura del IGN y humedad SAOCOM |
 | [005-corte-ruta9](005-corte-ruta9/spec.md) | implementada en el motor | Chance de corte de la RN9 para excursiones y logística |
+| [002-panel-listo-demo](002-panel-listo-demo/spec.md) | implementada en el panel local | Panel legible en proyector |
+| [003-recorrido](003-recorrido/spec.md) | rediseño del panel local | Recorrido de la quebrada con ficha por zona |
 
 La spec en curso está en `.specify/feature.json`. La próxima se copia desde `.specify/templates/`.

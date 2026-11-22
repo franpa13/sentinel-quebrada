@@ -1,16 +1,6 @@
 import type { Metadata } from "next";
-import { Fraunces, Geist } from "next/font/google";
 import "./globals.css";
-
-const geist = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-});
+import "./atlas.css";
 
 export const metadata: Metadata = {
   title: "Sentinel Quebrada · Volcán",
@@ -20,8 +10,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${geist.variable} ${fraunces.variable} h-full antialiased`}>
-      <body className="min-h-full bg-[#101614]">{children}</body>
+    <html lang="es">
+      <body>{children}</body>
     </html>
   );
 }

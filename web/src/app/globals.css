@@ -5,9 +5,44 @@
   --font-serif: var(--font-fraunces), Georgia, serif;
 }
 
+html {
+  color-scheme: dark;
+  scrollbar-color: #2c4036 transparent;
+}
+
+@media (min-width: 1600px) and (min-height: 900px) {
+  html {
+    font-size: 112.5%;
+  }
+}
+
 body {
   margin: 0;
   background: #101614;
   color: #e7f0ea;
   font-family: var(--font-sans);
+}
+
+a,
+button,
+input,
+label,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+::selection {
+  background: #d7b48a;
+  color: #101614;
+}
+
+:focus-visible {
+  outline: 2px solid #f6f1e7;
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
 }

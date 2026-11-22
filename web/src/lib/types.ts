@@ -80,3 +80,7 @@ export const LEVEL_COLOR: Record<Level, string> = {
   naranja: "#e07a32",
   rojo: "#d4544c",
 };
+
+export const LEVEL_INK = "#0a0f0c";
+
+export const LEVELS: Level[] = ["verde", "amarillo", "naranja", "rojo"];
