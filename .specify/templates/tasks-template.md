@@ -1,0 +1,6 @@
+# Plantilla de tareas
+
+- [ ] T1. …
+- [ ] T2. …
+
+Una tarea está hecha solo si su criterio de la spec se puede mostrar (test, pantalla o respuesta de la API).

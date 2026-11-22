@@ -10,6 +10,12 @@ El 10 de enero de 2017 un aluvión cortó la RN 9 y afectó Volcán, Bárcena y 
 2. **Esquema de zonas.** Cuenca alta, cauce, cono de deyección, casco, accesos y RN 9, pintados verde / amarillo / naranja / rojo. Hay un GeoJSON del mismo esquema en `GET /zones.geojson` para el día que se suba a un mapa.
 3. **Alerta explicable.** Índice 0–100, factores en puntos, confianza del dato y margen de reacción.
 
+## Specs para cualquier asistente
+
+El comportamiento está fijado en `specs/`, no en el chat. `AGENTS.md` es el punto de entrada: lo leen Cursor, Copilot, Claude, Codex, Gemini u otro. La constitución está en `.specify/memory/constitution.md`. La spec activa está en `.specify/feature.json`.
+
+Una feature nueva se escribe antes de codear: se copia `.specify/templates/` a `specs/NNN-nombre/` y se completa spec, plan y tareas.
+
 ## Stack
 
 | Pieza | Tecnología | Por qué |
