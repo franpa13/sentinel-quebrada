@@ -1,0 +1,13 @@
+{
+  "name": "sentinel-quebrada",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n api,web -c yellow,cyan \"npm run dev:api\" \"npm run dev:web\"",
+    "dev:api": "engine\\.venv\\Scripts\\python.exe -m uvicorn sentinel.api:app --app-dir engine --reload --port 8000",
+    "dev:web": "npm run dev --prefix web",
+    "test": "cd engine && .venv\\Scripts\\python.exe -m pytest -q"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

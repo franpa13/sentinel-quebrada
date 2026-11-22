@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), "Segoe UI", sans-serif;
+  --font-serif: var(--font-fraunces), Georgia, serif;
+}
+
+body {
+  margin: 0;
+  background: #101614;
+  color: #e7f0ea;
+  font-family: var(--font-sans);
+}
