@@ -20,7 +20,7 @@ Una feature nueva se escribe antes de codear: se copia `.specify/templates/` a `
 
 | Pieza | Tecnología | Por qué |
 | --- | --- | --- |
-| Ciencia y reglas | Python 3.12 | Ahí viven el índice, los escenarios y los tests. Es lo que se calibra cuando haya eventos etiquetados. |
+| Ciencia y reglas | Python 3.15 | Ahí viven el índice, los escenarios y los tests. Es lo que se calibra cuando haya eventos etiquetados. |
 | API | FastAPI | Contrato único para el panel, para Open-Meteo y para un pluviómetro futuro. |
 | Panel | Next.js + React + Tailwind | Una pantalla de demo, perillas y reproducción. |
 | Mapa de la demo | SVG | No depende de teselas ni de red. El fallo de conectividad no mata el pitch. |
@@ -41,7 +41,7 @@ No hay un modelo de caja negra. Sin una serie etiquetada de aludes, un random fo
 
 ## Cómo correrlo
 
-Hace falta Node 22 y Python 3.12. La primera vez:
+Hace falta Node 22 y Python 3.15. La primera vez:
 
 ```powershell
 .\scripts\setup.ps1

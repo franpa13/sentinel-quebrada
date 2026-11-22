@@ -1,6 +1,6 @@
 # Puesta en marcha 001
 
-Desde la raíz del repo, con Python 3.12 y Node 22:
+Desde la raíz del repo, con Python 3.15 y Node 22:
 
 ```powershell
 .\scripts\setup.ps1
