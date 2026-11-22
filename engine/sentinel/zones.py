@@ -147,6 +147,24 @@ ZONES: tuple[Zone, ...] = (
 ZONE_BY_ID: dict[str, Zone] = {zone.id: zone for zone in ZONES}
 
 
+def _ring_contains(ring: tuple[tuple[float, float], ...], lon: float, lat: float) -> bool:
+    inside = False
+    previous = len(ring) - 1
+    for index, (plon, plat) in enumerate(ring):
+        qlon, qlat = ring[previous]
+        if (plat > lat) != (qlat > lat):
+            edge = (qlon - plon) * (lat - plat) / ((qlat - plat) or 1e-12) + plon
+            if lon < edge:
+                inside = not inside
+        previous = index
+    return inside
+
+
+def zones_containing(lat: float, lon: float) -> tuple[Zone, ...]:
+    """Anillos del esquema de Volcán que contienen el punto. Vacío en cualquier otro lado."""
+    return tuple(zone for zone in ZONES if len(zone.ring) >= 3 and _ring_contains(zone.ring, lon, lat))
+
+
 def zones_geojson() -> dict:
     features = []
     for zone in ZONES:

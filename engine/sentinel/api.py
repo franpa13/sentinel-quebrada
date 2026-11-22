@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from sentinel import __version__
+from sentinel.lugar import VOLCAN_LAT, VOLCAN_LON, VOLCAN_NAME, leer_lugar
 from sentinel.model import Snapshot, ZoneScore, narrative, score_zone
 from sentinel.open_meteo import OpenMeteoError, fetch_open_meteo, snapshot_from_hourly
 from sentinel.scenarios import SCENARIO_BY_ID, SCENARIOS
-from sentinel.zones import ZONES, zones_geojson
+from sentinel.semana import consultar_semana, puntaje_de_punto
+from sentinel.ruta9 import catalogo, lectura_de_semana
+from sentinel.zones import ZONES, zones_containing, zones_geojson
 
 app = FastAPI(
     title="Sentinel Quebrada",
@@ -180,6 +183,162 @@ def evaluate(body: EvaluateIn) -> dict:
         "narrative": narrative(scores),
         "zones": [_dump_score(score) for score in scores],
     }
+
+
+def _dump_point(score: ZoneScore) -> dict:
+    dumped = _dump_score(score)
+    dumped["reaction_margin_min"] = None
+    dumped["concentration_min"] = None
+    dumped["margin_note"] = "Sin cuenca delineada no hay tiempo de Kirpich. Ese número no se inventa."
+    return dumped
+
+
+@app.get("/consulta")
+def consulta_catalog() -> dict:
+    return {
+        "endpoints": [
+            {
+                "method": "GET",
+                "path": "/consulta/semana",
+                "query": {"lat": "obligatorio, grados", "lon": "obligatorio, grados", "nombre": "opcional"},
+                "hace": (
+                    "Dice si esa coordenada merece atención en los próximos 7 días. "
+                    "Cada día pasa por el índice. No asume Volcán."
+                ),
+            },
+            {
+                "method": "GET",
+                "path": "/context/lugar",
+                "query": {"lat": "default Volcán", "lon": "default Volcán", "name": "opcional"},
+                "hace": (
+                    "Última lectura pública de esa coordenada y su puntaje. "
+                    "Las zonas del esquema solo vuelven si el punto cae dentro."
+                ),
+            },
+        ]
+    }
+
+
+@app.get("/consulta/semana")
+def consulta_semana(
+    lat: float = Query(..., ge=-90, le=90),
+    lon: float = Query(..., ge=-180, le=180),
+    nombre: str = "",
+) -> dict:
+    return consultar_semana(lat, lon, nombre.strip() or "Punto consultado")
+
+
+@app.get("/ruta9")
+def ruta9_home() -> dict:
+    return {
+        "route": "RN9",
+        "focus": "Turismo y excursiones de la Quebrada, y la logística que depende de que la ruta siga abierta.",
+        "endpoints": [
+            {
+                "method": "GET",
+                "path": "/ruta9/cortes",
+                "hace": "Lista los cortes por lluvia, alud o barro publicados sobre la RN9 de la Quebrada, con fuente.",
+            },
+            {
+                "method": "GET",
+                "path": "/ruta9/semana",
+                "query": {"lat": "obligatorio", "lon": "obligatorio", "nombre": "opcional"},
+                "hace": (
+                    "Chance de que esta semana la lluvia corte la RN9 en ese punto. "
+                    "Sirve para decidir una excursión o un traslado. No cancela la salida."
+                ),
+            },
+        ],
+    }
+
+
+@app.get("/ruta9/cortes")
+def ruta9_cortes() -> dict:
+    return catalogo()
+
+
+@app.get("/ruta9/semana")
+def ruta9_semana(
+    lat: float = Query(..., ge=-90, le=90),
+    lon: float = Query(..., ge=-180, le=180),
+    nombre: str = "",
+) -> dict:
+    name = nombre.strip() or "Punto de la Quebrada"
+    week = consultar_semana(lat, lon, name)
+    reading = lectura_de_semana(lat, lon, name, week["week"])
+    reading["aluvional"] = {
+        "headline": week["week"]["headline"],
+        "terrain": week["terrain"],
+        "soil": week["soil"],
+    }
+    return reading
+
+
+@app.get("/context/lugar")
+def lugar_context(
+    lat: float = Query(default=VOLCAN_LAT, ge=-90, le=90),
+    lon: float = Query(default=VOLCAN_LON, ge=-180, le=180),
+    name: str = VOLCAN_NAME,
+) -> dict:
+    reading = leer_lugar(lat, lon, name)
+    snapshot = reading["snapshot"]
+    covered = zones_containing(lat, lon)
+    if snapshot is None:
+        scored = {
+            "narrative": "Sin lluvia válida de la grilla no se declara calma.",
+            "point": None,
+            "zones": [],
+            "operational_level": "amarillo",
+            "schematic_note": _schematic_note(covered),
+        }
+    else:
+        context = reading["context"]
+        point = puntaje_de_punto(snapshot, context["terrain"], name)
+        zone_scores = [score_zone(snapshot, zone, None) for zone in covered]
+        scored = {
+            "narrative": _lugar_narrative(point, covered),
+            "point": _dump_point(point),
+            "zones": [_dump_score(score) for score in zone_scores],
+            "operational_level": point.operational_level,
+            "terrain_note": context["terrain_note"],
+            "moisture_note": context["moisture_note"],
+            "schematic_note": _schematic_note(covered),
+        }
+    return {
+        "place": reading["place"],
+        "limits": reading["limits"],
+        "snapshot": None
+        if snapshot is None
+        else {
+            "rain_acc_mm": snapshot.rain_acc_mm,
+            "intensity_mm_h": snapshot.intensity_mm_h,
+            "burst_mm_30min": snapshot.burst_mm_30min,
+            "soil_moisture": snapshot.soil_moisture,
+            "data_age_min": snapshot.data_age_min,
+            "sensor_quality": snapshot.sensor_quality,
+        },
+        "score": scored,
+        "gis": {
+            "inta": reading["context"]["inta"],
+            "cobertura": reading["context"]["cobertura"],
+            "saocom_percent": reading["context"]["saocom_percent"],
+        },
+        "sources": reading["sources"],
+    }
+
+
+def _schematic_note(covered) -> str:
+    if covered:
+        return "El punto cae en el esquema de demo de Volcán. Esos anillos no son cartografía oficial."
+    return "El esquema de Volcán no cubre este punto. El índice es del punto, no del casco ni de la RN 9."
+
+
+def _lugar_narrative(point: ZoneScore, covered) -> str:
+    opening = f"Punto en {point.operational_level} (índice {point.index:.0f})."
+    if not covered:
+        return opening + " Fuera del esquema de Volcán: no hay casco ni RN 9 para este lugar."
+    names = ", ".join(zone.name for zone in covered)
+    return opening + f" Cae en el esquema de demo: {names}."
 
 
 @app.get("/context/open-meteo")
