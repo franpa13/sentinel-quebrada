@@ -44,6 +44,18 @@ Todo número que muestre DEBE ser del motor. La simulación de la cuenca de Volc
 
 La vista de viaje DEBE responder primero en palabras, no en puntos: cada nivel del motor se traduce a una frase (poco probable, posible, probable, muy probable) con ícono y color. `atencion` NO DEBE leerse como "libre": dice que no hay señales pero que hay que confirmar. El puntaje 0–100, los factores y el historial completo quedan a un toque, en "por qué". La vista DEBE decir qué hacer antes de salir sin presentarlo como orden ni inventar teléfonos o umbrales.
 
+### RF-36 Mapa con la ruta real
+
+La vista de viaje DEBE mostrar, en la misma pantalla, un mapa con la traza real de la RN9 entre Volcán y Humahuaca. La geometría sale de OpenStreetMap, vive en el motor (`traza_rn9.py`) y llega por `GET /ruta9/pueblos` junto con el kilómetro de cada pueblo sobre la traza y a cuánto queda de la ruta. El mapa DEBE:
+
+- resaltar el tramo del viaje;
+- pintar cada pueblo con el nivel del día elegido, y en neutro mientras no hay día;
+- marcar los cortes publicados del tramo;
+- dejar elegir la llegada tocando un pueblo;
+- citar a OpenStreetMap y decir que no es cartografía oficial de Vialidad.
+
+Si las teselas no cargan, la traza y los pueblos se siguen dibujando.
+
 ## Enmienda a la spec 005
 
 RF-30 pedía abrir con la lectura de Volcán y elegir un pueblo tocando la traza. La vista de viaje lo cumple con salida y llegada en Volcán. La lectura de la ruta deja de convivir con el esquema de la cuenca: el dibujo de Volcán no se muestra al lado de la ruta de otro pueblo.

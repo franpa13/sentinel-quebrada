@@ -127,7 +127,17 @@ export type Cut = {
   url: string;
 };
 
-export type Pueblo = { name: string; lat: number; lon: number; episodes_near: number };
+export type Pueblo = {
+  name: string;
+  lat: number;
+  lon: number;
+  episodes_near: number;
+  route_km: number;
+  off_route_km: number;
+  route_point: [number, number];
+};
+
+export type Traza = { coordinates: [number, number][]; km: number[]; attribution: string; note: string };
 
 export type TripDay = {
   date: string;

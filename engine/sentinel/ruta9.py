@@ -11,6 +11,7 @@ from __future__ import annotations
 import datetime
 
 from sentinel.lugar import distance_m
+from sentinel.traza_rn9 import ATTRIBUTION, TRAZA
 
 CORRIDOR_KM = 25.0
 HISTORY_KM = 15.0
@@ -450,9 +451,37 @@ def pueblos() -> dict:
         "route": "RN9",
         "order": "Sur a norte, desde Volcán.",
         "pueblos": [
-            {**pueblo, "episodes_near": _episodes_near(pueblo["lat"], pueblo["lon"])}
+            {
+                **pueblo,
+                "episodes_near": _episodes_near(pueblo["lat"], pueblo["lon"]),
+                **sobre_la_traza(pueblo["lat"], pueblo["lon"]),
+            }
             for pueblo in PUEBLOS
         ],
+        "traza": {
+            "coordinates": [[lat, lon] for lat, lon in TRAZA],
+            "km": [round(value, 2) for value in _km_acumulados()],
+            "attribution": ATTRIBUTION,
+            "note": "Traza de OpenStreetMap. No es cartografía oficial de Vialidad Nacional.",
+        },
+    }
+
+
+def _km_acumulados() -> list[float]:
+    total = [0.0]
+    for (lat1, lon1), (lat2, lon2) in zip(TRAZA, TRAZA[1:]):
+        total.append(total[-1] + distance_m(lat1, lon1, lat2, lon2) / 1000)
+    return total
+
+
+def sobre_la_traza(lat: float, lon: float) -> dict:
+    """Kilómetro de la traza más cercano al pueblo y a cuánto queda de la ruta."""
+    km = _km_acumulados()
+    index = min(range(len(TRAZA)), key=lambda i: distance_m(lat, lon, *TRAZA[i]))
+    return {
+        "route_km": round(km[index], 2),
+        "off_route_km": round(distance_m(lat, lon, *TRAZA[index]) / 1000, 2),
+        "route_point": list(TRAZA[index]),
     }
 
 

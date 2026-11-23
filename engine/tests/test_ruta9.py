@@ -111,3 +111,12 @@ def test_los_cortes_del_tramo_quedan_cerca_de_sus_pueblos():
     places = {item["place"] for item in trip["cortes"]}
     assert "Volcán" in places
     assert not any("Uquía" in place for place in places)
+
+
+def test_los_pueblos_quedan_sobre_la_traza_real_en_orden():
+    data = pueblos()
+    kms = [p["route_km"] for p in data["pueblos"]]
+    assert kms == sorted(kms) and kms[0] < 1
+    assert 70 < data["traza"]["km"][-1] < 100
+    assert all(p["off_route_km"] < 5 for p in data["pueblos"])
+    assert "OpenStreetMap" in data["traza"]["attribution"]

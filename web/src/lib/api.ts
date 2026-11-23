@@ -1,4 +1,4 @@
-import type { Pueblo, ScenarioDetail, ScenarioMeta, Snapshot, Trip, ZoneScore } from "@/lib/types";
+import type { Pueblo, Traza, ScenarioDetail, ScenarioMeta, Snapshot, Trip, ZoneScore } from "@/lib/types";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
@@ -34,7 +34,7 @@ export function evaluate(snapshot: Snapshot) {
 }
 
 export function listPueblos() {
-  return readJson<{ pueblos: Pueblo[] }>("/ruta9/pueblos");
+  return readJson<{ pueblos: Pueblo[]; traza: Traza }>("/ruta9/pueblos");
 }
 
 export function getTrip(desde: string, hasta: string, signal?: AbortSignal) {

@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getTrip, listPueblos } from "@/lib/api";
-import { BAND_COLOR, type Pueblo, type RouteBand, type Trip as TripReading } from "@/lib/types";
+import { BAND_COLOR, type Pueblo, type RouteBand, type Traza, type Trip as TripReading } from "@/lib/types";
+import { RouteMap } from "./RouteMap";
 
 const HOME = "Volcán";
 const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
@@ -103,6 +104,7 @@ function setQuery(key: string, value: string | null) {
 
 export function Trip() {
   const [pueblos, setPueblos] = useState<Pueblo[]>([]);
+  const [traza, setTraza] = useState<Traza | null>(null);
   const [desde, setDesde] = useState(HOME);
   const [hasta, setHasta] = useState(HOME);
   const [trip, setTrip] = useState<TripReading | null>(null);
@@ -162,10 +164,11 @@ export function Trip() {
   useEffect(() => {
     let cancelled = false;
     listPueblos().then(
-      ({ pueblos: list }) => {
+      ({ pueblos: list, traza: line }) => {
         if (cancelled) return;
         const start = readQuery(list.map((item) => item.name));
         setPueblos(list);
+        setTraza(line);
         load(start.desde, start.hasta, start.dia);
       },
       () => {
@@ -210,10 +213,17 @@ export function Trip() {
   const filtered = (trip?.cortes ?? []).filter((cut) => month === null || Number(cut.date.slice(5, 7)) - 1 === month);
   const cuts = allCuts || month !== null ? filtered : filtered.slice(0, 4);
 
+  const colors = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const town of selected?.towns ?? []) out[town.name] = BAND_COLOR[town.operational];
+    return out;
+  }, [selected]);
+
   const band = selected?.operational ?? trip?.operational ?? "atencion";
   const risk = RISK[band];
 
   return <main className="sheet trip">
+    <div className="trip-flow">
     <section className="ask">
       <p className="eyebrow">Ruta Nacional 9 · Quebrada de Humahuaca, Jujuy</p>
       <h1>¿Se corta la ruta?</h1>
@@ -234,24 +244,10 @@ export function Trip() {
         </label>
       </form>
 
-      <div className="road" aria-label="Pueblos sobre la Ruta 9, de sur a norte">
-        <div className="road-line">
-          {pueblos.map((item, index) => {
-            const inTrip = index >= low && index <= high;
-            const town = selected?.towns.find((entry) => entry.name === item.name);
-            const color = inTrip && town ? BAND_COLOR[town.operational] : undefined;
-            return <button key={item.name} type="button" aria-pressed={item.name === hasta}
-              className={[inTrip ? "on-path" : "", index > low && inTrip ? "joined" : ""].join(" ")}
-              onClick={() => load(desde, item.name)} aria-label={`Ir hasta ${item.name}`}>
-              <i style={color ? { background: color, borderColor: color } : undefined} />
-              <span>{item.name}</span>
-              <small>{item.name === desde ? "Salida" : item.name === hasta ? "Llegada" : " "}</small>
-            </button>;
-          })}
-        </div>
-        <p className="hint">{desde === hasta ? "Tocá un pueblo para elegir a dónde vas." : `Tu viaje pasa por ${stops} pueblos. Si la ruta se corta en cualquiera de ellos, el viaje se complica.`}</p>
-      </div>
+      <p className="hint">{desde === hasta ? "Tocá un pueblo en el mapa o elegilo arriba para decir a dónde vas." : `Tu viaje pasa por ${stops} pueblos. Si la ruta se corta en cualquiera de ellos, el viaje se complica.`}</p>
+    </section>
 
+    <section className="ask-day">
       <fieldset className="when-ask">
         <legend>¿Qué día viajás?</legend>
         <div className="date-chips">
@@ -376,5 +372,11 @@ export function Trip() {
       <summary>Qué no es esta página</summary>
       <ul className="limits">{trip.limits.map((limit) => <li key={limit}>{limit}</li>)}</ul>
     </details>}
+    </div>
+
+    <aside className="trip-map">
+      <RouteMap pueblos={pueblos} traza={traza} desde={desde} hasta={hasta} colors={colors} cuts={trip?.cortes ?? []}
+        onPick={(name) => load(desde, name)} />
+    </aside>
   </main>;
 }

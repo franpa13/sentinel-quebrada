@@ -125,6 +125,8 @@
 .atlas>* {min-width:0}
 .atlas:has(.trip) {height:auto}
 .trip {width:100%;max-width:880px;margin:0 auto;padding-block:clamp(16px,3vh,32px) 24px;gap:18px;font-size:16px}
+.trip-flow {display:flex;flex-direction:column;gap:18px;min-width:0}
+.trip-map {min-width:0}
 .trip>* {min-width:0}
 .trip h1 {font-size:clamp(34px,5vw,56px)}
 .eyebrow {font-size:13px;color:var(--sub);margin:0 0 4px}
@@ -135,14 +137,6 @@
 .planner select {width:100%;padding:10px 14px;background:#fff;border:2px solid #7c9296;border-radius:8px;font:600 17px/1.25 "Trebuchet MS",sans-serif;color:var(--ink);min-height:50px}
 .planner select:focus {border-color:var(--deep)}
 .swap {min-height:50px;min-width:50px;border:2px solid #7c9296;border-radius:8px;background:#fff;color:var(--ink);font-size:20px}
-.trip .road {margin-top:14px}
-.trip .road-line button::before,.trip .road-line button.on-path::before {background:#c5d0cb}
-.trip .road-line button.joined::before {background:var(--deep);height:5px;top:12px}
-.trip .road-line button i {border-color:#9aabae;background:#fff}
-.trip .road-line button.on-path i {border-color:var(--deep)}
-.trip .road-line button[aria-pressed=true] i {box-shadow:0 0 0 4px #17374433}
-.trip .road-line button:not(.on-path) span {color:var(--sub);font-weight:500}
-.trip .road-line small {min-height:13px}
 .hint {font-size:14px;color:var(--sub);margin:2px 0 0}
 
 .risk-icon {width:28px;height:28px;flex:none;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
@@ -245,3 +239,33 @@
   .months .col{height:44px}.cuts li{grid-template-columns:1fr}.kind{justify-self:start}
 }
 @media(max-width:420px){.planner{flex-wrap:wrap}.planner label{flex-basis:calc(50% - 35px)}.planner select{font-size:16px;padding-inline:8px}}
+
+/* Mapa de la ruta */
+.route-map {margin:0}
+.route-map-canvas {height:min(60vh,420px);border-radius:12px;border:1px solid #b0b6a8;overflow:hidden;background:#e8eadf;z-index:0}
+.route-map figcaption {display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:8px;font-size:13px;color:var(--sub)}
+.route-map figcaption span {display:inline-flex;align-items:center;gap:6px}
+.route-map figcaption small {flex-basis:100%;font-size:12px}
+.k-route {width:22px;height:5px;border-radius:3px;background:#173744}
+.k-town {width:12px;height:12px;border-radius:50%;background:#3f86a3;box-shadow:0 0 0 2px #fff,0 0 0 3px #9aabae}
+.k-cut {width:10px;height:10px;border-radius:50%;background:#b0573a}
+.leaflet-tooltip.town-label {background:#fffffff2;border:1px solid #7c9296;border-radius:4px;box-shadow:none;padding:1px 6px;font:700 12px/1.3 "Trebuchet MS",sans-serif;color:#173744}
+.leaflet-tooltip.town-label.off {color:#6b7f83;font-weight:500;border-color:#c5d0cb}
+.leaflet-tooltip.town-label::before {display:none}
+.leaflet-container {font:inherit}
+.leaflet-interactive:focus {outline:none}
+.map-pop b {display:block;margin-bottom:4px}
+.map-pop p {margin:2px 0;font-size:13px}
+.map-pop span {color:#b0573a;font-weight:700}
+
+@media(min-width:1100px){
+  .trip {display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,46%);gap:32px;align-items:start;max-width:1400px}
+  .trip-map {position:sticky;top:16px}
+  .route-map-canvas {height:calc(100dvh - 120px);min-height:480px}
+}
+@media(max-width:1099px){
+  .trip-flow {display:contents}
+  .trip-flow>* {order:2}
+  .trip-flow>.ask {order:0}
+  .trip-map {order:1}
+}
