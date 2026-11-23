@@ -14,7 +14,17 @@
 .brand svg {width:34px;height:29px;color:#bdd9c8}
 .sheet {display:flex;flex:1;flex-direction:column;min-height:0;padding-bottom:14px}
 .sheet-head,.tools,.plate-cap,.key,.sequence,.time>div:first-child,.score,.contributions summary {display:flex;align-items:center}
-.sheet-head {justify-content:space-between;gap:16px;padding-block:clamp(12px,2vh,25px)}
+.sheet-head {justify-content:space-between;gap:16px;padding-block:clamp(12px,2vh,22px) 8px}
+.road-ask {margin:0 0 8px;font-size:clamp(16px,1.4vw,20px)}
+.road-line {display:flex;overflow-x:auto;padding:2px 0 8px}
+.road-line button {position:relative;flex:1;min-width:78px;display:grid;justify-items:center;gap:3px;padding:6px 4px 2px;background:none;border:0;color:var(--ink);font:600 13px/1.15 "Trebuchet MS",sans-serif}
+.road-line button i {width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid #7c9296;z-index:1}
+.road-line button::before {content:"";position:absolute;top:13px;left:-50%;right:50%;height:3px;background:#c5d0cb}
+.road-line button:first-child::before {content:none}
+.road-line button.on-path::before,.road-line button[aria-pressed=true]+button.on-path::before {background:var(--deep)}
+.road-line button.on-path i {border-color:var(--deep)}
+.road-line button[aria-pressed=true] i {background:var(--deep);box-shadow:0 0 0 4px #17374422}
+.road-line small {color:var(--sub);font-size:11px;font-weight:700}
 .sheet-head p,.plate-cap span+span {font-size:13px;color:var(--sub)}
 .atlas h1,.reading h2,.score strong,.vitals dd {font-family:"Palatino Linotype",Palatino,Georgia,serif}
 .atlas h1 {font-size:clamp(30px,3.3vw,58px);line-height:1.08;letter-spacing:-.045em;font-weight:500}
@@ -89,6 +99,8 @@
 .reading details p,.exposure {color:#d7e3df;padding:4px 0 8px}
 .conditions {margin-top:8px;padding-top:10px;border-top:1px solid #4c6971;font-size:14px}
 .notice {font-size:13px;border-radius:3px;margin-top:10px}
+.reading a {color:#f3d7a1}
+.map-note {color:var(--sub);font-size:13px}
 .atlas footer {color:var(--sub);border-top:1px solid var(--line);font-size:12px;padding-block:7px}
 .scrub,.to-route {display:none}
 @media(max-width:1023px){.to-route{display:block;min-height:44px;margin:0 20px 12px;text-decoration:underline}.instrument button{min-height:44px}}

@@ -1,6 +1,6 @@
 # Spec 005 — Chance de corte de la RN9
 
-Estado: implementada en el motor. El panel no la muestra.
+Estado: implementada en el motor y mostrada en el panel.
 
 ## Contexto
 
@@ -24,8 +24,12 @@ Si la confianza de la grilla es baja y el puntaje físico queda en banda baja, e
 
 La frase DEBE hablar de excursión, turismo y de que un corte en la traza deja el pueblo sin salida. No DEBE presentarse como orden de cancelar.
 
+### RF-30 Una persona en Volcán
+
+El panel DEBE abrir con la lectura de la RN9 en Volcán. DEBE dejar elegir, tocando la traza, otro pueblo hacia el norte y pedir `GET /ruta9/semana` solo para ese punto. El puntaje que muestra DEBE ser el del motor. La frase de cabecera traduce la banda operativa a lenguaje de quien sale de excursión y DEBE recordar que un corte en el medio también deja el pueblo sin salida. La simulación local DEBE seguir disponible.
+
 ## Fuera de alcance
 
-- Cambiar `web/`.
 - Inventar milímetros de los cortes viejos.
 - Incluir la RN52 en la chance de la RN9.
+- Calcular en el panel la chance de todo el corredor. Cada toque consulta un solo punto.

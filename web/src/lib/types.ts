@@ -67,6 +67,42 @@ export type ScenarioDetail = ScenarioMeta & {
   frames: Frame[];
 };
 
+export type RouteBand = "baja" | "media" | "alta" | "muy_alta" | "atencion";
+
+export type RouteWeek = {
+  place: { name: string; latitude: number; longitude: number };
+  on_rn9: boolean;
+  distance_to_rn9_km: number;
+  chance: number | null;
+  band: Exclude<RouteBand, "atencion"> | null;
+  operational: RouteBand | null;
+  headline: string;
+  factors: Factor[];
+  analogs: {
+    episode: string;
+    date: string;
+    place: string;
+    kind: string;
+    distance_km: number;
+    summary: string;
+    source: string;
+    url: string;
+  }[];
+  limits: string[];
+  week: {
+    from: string | null;
+    to: string | null;
+    peak_day: string | null;
+    peak_index: number | null;
+    rain_sum_mm: number | null;
+  };
+  aluvional: {
+    headline: string;
+    terrain: { slope_deg: number | null; elevation_m: number | null; susceptibility: number; note: string };
+    soil: { value: number; day: string | null; note: string };
+  };
+};
+
 export const LEVEL_LABEL: Record<Level, string> = {
   verde: "Verde",
   amarillo: "Amarillo",
