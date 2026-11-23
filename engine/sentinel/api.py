@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import time
+from concurrent.futures import ThreadPoolExecutor
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -12,7 +15,7 @@ from sentinel.model import Snapshot, ZoneScore, narrative, score_zone
 from sentinel.open_meteo import OpenMeteoError, fetch_open_meteo, snapshot_from_hourly
 from sentinel.scenarios import SCENARIO_BY_ID, SCENARIOS
 from sentinel.semana import consultar_semana, puntaje_de_punto
-from sentinel.ruta9 import catalogo, lectura_de_semana
+from sentinel.ruta9 import catalogo, combinar_viaje, lectura_de_semana, pueblos, tramo
 from sentinel.zones import ZONES, zones_containing, zones_geojson
 
 app = FastAPI(
@@ -248,6 +251,20 @@ def ruta9_home() -> dict:
                     "Sirve para decidir una excursión o un traslado. No cancela la salida."
                 ),
             },
+            {
+                "method": "GET",
+                "path": "/ruta9/pueblos",
+                "hace": "Pueblos de la RN9 de sur a norte, con los episodios publicados cerca de cada uno.",
+            },
+            {
+                "method": "GET",
+                "path": "/ruta9/viaje",
+                "query": {"desde": "nombre de /ruta9/pueblos", "hasta": "nombre de /ruta9/pueblos"},
+                "hace": (
+                    "Chance de corte del viaje, día por día. Cada día manda el pueblo más comprometido del tramo "
+                    "y se marca el día más tranquilo para salir."
+                ),
+            },
         ],
     }
 
@@ -263,7 +280,10 @@ def ruta9_semana(
     lon: float = Query(..., ge=-180, le=180),
     nombre: str = "",
 ) -> dict:
-    name = nombre.strip() or "Punto de la Quebrada"
+    return _lectura_ruta(lat, lon, nombre.strip() or "Punto de la Quebrada")
+
+
+def _lectura_ruta(lat: float, lon: float, name: str) -> dict:
     week = consultar_semana(lat, lon, name)
     reading = lectura_de_semana(lat, lon, name, week["week"])
     reading["aluvional"] = {
@@ -272,6 +292,39 @@ def ruta9_semana(
         "soil": week["soil"],
     }
     return reading
+
+
+# La grilla de 7 días no cambia en minutos. Mover la llegada no vuelve a pedir
+# los pueblos que ya se leyeron. Una lectura sin días no se guarda.
+TOWN_TTL_S = 15 * 60
+_town_cache: dict[str, tuple[float, dict]] = {}
+
+
+def _lectura_pueblo(pueblo: dict) -> dict:
+    now = time.monotonic()
+    cached = _town_cache.get(pueblo["name"])
+    if cached and now - cached[0] < TOWN_TTL_S:
+        return cached[1]
+    reading = _lectura_ruta(pueblo["lat"], pueblo["lon"], pueblo["name"])
+    if reading.get("days"):
+        _town_cache[pueblo["name"]] = (now, reading)
+    return reading
+
+
+@app.get("/ruta9/pueblos")
+def ruta9_pueblos() -> dict:
+    return pueblos()
+
+
+@app.get("/ruta9/viaje")
+def ruta9_viaje(desde: str = Query(...), hasta: str = Query(...)) -> dict:
+    try:
+        stops = tramo(desde, hasta)
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    with ThreadPoolExecutor(max_workers=len(stops)) as pool:
+        readings = list(pool.map(_lectura_pueblo, stops))
+    return combinar_viaje(desde, hasta, readings)
 
 
 @app.get("/context/lugar")

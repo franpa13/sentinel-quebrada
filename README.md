@@ -77,6 +77,7 @@ Conectado ahora:
 - `GET /context/lugar?lat=&lon=` arma la última lectura pública de esa coordenada y la puntúa. Si no se pasan coordenadas, sigue siendo Volcán. Las zonas del esquema solo entran cuando el punto cae dentro. El panel todavía no la dibuja.
 - `GET /consulta/semana?lat=&lon=` puntúa los próximos 7 días de cualquier lugar. La carta del INTA, la cobertura del IGN y SAOCOM pueden subir la susceptibilidad o la humedad; no las bajan.
 - `GET /ruta9/cortes` lista cortes de la RN9 por lluvia o alud, con la nota de prensa. `GET /ruta9/semana?lat=&lon=` dice la chance de que esa semana el barro corte la ruta en ese punto de la Quebrada. Es para excursiones y para la logística que no tiene otra salida. No es un parte de Vialidad ni una orden de cancelar.
+- `GET /ruta9/pueblos` lista los pueblos de la traza de sur a norte. `GET /ruta9/viaje?desde=&hasta=` arma el viaje día por día: cada día manda el pueblo más comprometido del tramo y se marca el día más tranquilo para salir. Es la vista **¿Se corta la ruta?** del panel (spec 006); la simulación de la cuenca quedó en la pestaña **Cuenca de Volcán**.
 
 Para después, sin prometerlo en la demo:
 

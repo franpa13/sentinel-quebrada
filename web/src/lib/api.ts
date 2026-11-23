@@ -1,4 +1,4 @@
-import type { RouteWeek, ScenarioDetail, ScenarioMeta, Snapshot, ZoneScore } from "@/lib/types";
+import type { Pueblo, ScenarioDetail, ScenarioMeta, Snapshot, Trip, ZoneScore } from "@/lib/types";
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
@@ -33,9 +33,13 @@ export function evaluate(snapshot: Snapshot) {
   });
 }
 
-export function routeWeek(lat: number, lon: number, nombre: string) {
-  const query = new URLSearchParams({ lat: String(lat), lon: String(lon), nombre });
-  return readJson<RouteWeek>(`/ruta9/semana?${query}`);
+export function listPueblos() {
+  return readJson<{ pueblos: Pueblo[] }>("/ruta9/pueblos");
+}
+
+export function getTrip(desde: string, hasta: string, signal?: AbortSignal) {
+  const query = new URLSearchParams({ desde, hasta });
+  return readJson<Trip>(`/ruta9/viaje?${query}`, { signal });
 }
 
 export function openMeteo() {

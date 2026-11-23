@@ -96,11 +96,78 @@ export type RouteWeek = {
     peak_index: number | null;
     rain_sum_mm: number | null;
   };
+  days: RouteDay[];
   aluvional: {
     headline: string;
     terrain: { slope_deg: number | null; elevation_m: number | null; susceptibility: number; note: string };
     soil: { value: number; day: string | null; note: string };
   };
+};
+
+export type RouteDay = {
+  date: string | null;
+  rain_mm: number | null;
+  index: number | null;
+  chance: number | null;
+  band: Exclude<RouteBand, "atencion"> | null;
+  operational: RouteBand;
+  factors: Factor[];
+  note: string | null;
+};
+
+export type Cut = {
+  episode: string;
+  date: string;
+  place: string;
+  lat: number;
+  lon: number;
+  kind: string;
+  summary: string;
+  source: string;
+  url: string;
+};
+
+export type Pueblo = { name: string; lat: number; lon: number; episodes_near: number };
+
+export type TripDay = {
+  date: string;
+  chance: number | null;
+  operational: RouteBand;
+  driver: string | null;
+  complete: boolean;
+  max_rain_mm: number | null;
+  towns: { name: string; chance: number | null; operational: RouteBand; rain_mm: number | null }[];
+};
+
+export type Trip = {
+  from: string;
+  to: string;
+  stops: string[];
+  chance: number | null;
+  operational: RouteBand;
+  worst_day: string | null;
+  best_day: string | null;
+  headline: string;
+  days: TripDay[];
+  towns: RouteWeek[];
+  cortes: Cut[];
+  limits: string[];
+};
+
+export const BAND_LABEL: Record<RouteBand, string> = {
+  baja: "Baja",
+  media: "Media",
+  alta: "Alta",
+  muy_alta: "Muy alta",
+  atencion: "Atención",
+};
+
+export const BAND_COLOR: Record<RouteBand, string> = {
+  baja: "#1f9d62",
+  media: "#d6a63a",
+  alta: "#e07a32",
+  muy_alta: "#d4544c",
+  atencion: "#3f86a3",
 };
 
 export const LEVEL_LABEL: Record<Level, string> = {

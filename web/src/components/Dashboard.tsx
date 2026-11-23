@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { evaluate, getScenario, listScenarios, openMeteo, routeWeek } from "@/lib/api";
-import type { RouteWeek, ScenarioDetail, ScenarioMeta, Snapshot, ZoneScore } from "@/lib/types";
-import { TOWNS } from "@/lib/towns";
+import { evaluate, getScenario, listScenarios, openMeteo } from "@/lib/api";
+import type { ScenarioDetail, ScenarioMeta, Snapshot, ZoneScore } from "@/lib/types";
 import { Atlas } from "./Atlas";
 
 const DEFAULT_SCENARIO = "pico_cuenca_alta";
@@ -31,17 +30,13 @@ export function Dashboard() {
   const [frameIndex, setFrameIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [selectedId, setSelectedId] = useState("cuenca_alta");
-  const [mode, setMode] = useState<"scenario" | "manual" | "meteo" | "ruta">("scenario");
+  const [mode, setMode] = useState<"scenario" | "manual" | "meteo">("scenario");
   const [manual, setManual] = useState<Reading | null>(null);
   const [knobs, setKnobs] = useState<Snapshot>(EMPTY_SNAPSHOT);
-  const [route, setRoute] = useState<RouteWeek | null>(null);
-  const [townName, setTownName] = useState<string>(TOWNS[0].name);
-  const [routeBusy, setRouteBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(true);
   const [meteoBusy, setMeteoBusy] = useState(false);
   const latestRequest = useRef(0);
-  const readings = useRef(new Map<string, RouteWeek>());
 
   function connected({ listed, detail }: Awaited<ReturnType<typeof fetchInitial>>) {
     setCatalog(listed.scenarios);
@@ -55,8 +50,6 @@ export function Dashboard() {
     setError("El motor de Python no está corriendo en el puerto 8000.");
     setConnecting(false);
   }
-
-  const stayOnDemo = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,16 +110,7 @@ export function Dashboard() {
       if (event.altKey || event.ctrlKey || event.metaKey) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest("button, input, select, textarea, a, summary, [role=button]")) return;
-      if (mode === "ruta" && (event.key === "ArrowRight" || event.key === "ArrowLeft")) {
-        event.preventDefault();
-        if (routeBusy) return;
-        const index = TOWNS.findIndex((town) => town.name === townName);
-        const next = TOWNS[event.key === "ArrowRight" ? index + 1 : index - 1];
-        if (next) pullRoute(next);
-        return;
-      }
       if (event.key === " ") {
-        if (mode === "ruta") return;
         event.preventDefault();
         togglePlay();
       } else if (event.key === "ArrowRight") {
@@ -142,8 +126,8 @@ export function Dashboard() {
   });
 
   const frame = mode === "scenario" ? scenario?.frames[frameIndex] : null;
-  const zones = mode === "scenario" || mode === "ruta" ? (scenario?.frames[frameIndex]?.zones ?? []) : (manual?.zones ?? []);
-  const narrative = mode === "ruta" ? (route?.headline ?? "") : mode === "scenario" ? (frame?.narrative ?? "") : (manual?.narrative ?? "");
+  const zones = mode === "scenario" ? (scenario?.frames[frameIndex]?.zones ?? []) : (manual?.zones ?? []);
+  const narrative = mode === "scenario" ? (frame?.narrative ?? "") : (manual?.narrative ?? "");
   const selected = zones.find((zone) => zone.zone_id === selectedId) ?? zones[0];
 
   function retry() {
@@ -152,7 +136,6 @@ export function Dashboard() {
   }
 
   async function chooseScenario(id: string) {
-    stayOnDemo.current = true;
     setPlaying(false);
     const request = ++latestRequest.current;
     try {
@@ -169,7 +152,6 @@ export function Dashboard() {
   }
 
   async function runKnobs(next: Snapshot) {
-    stayOnDemo.current = true;
     setKnobs(next);
     setPlaying(false);
     const request = ++latestRequest.current;
@@ -185,7 +167,6 @@ export function Dashboard() {
   }
 
   async function pullMeteo() {
-    stayOnDemo.current = true;
     setPlaying(false);
     setMeteoBusy(true);
     const request = ++latestRequest.current;
@@ -203,45 +184,9 @@ export function Dashboard() {
     }
   }
 
-  async function pullRoute(town: { name: string; lat: number; lon: number }) {
-    setPlaying(false);
-    setTownName(town.name);
-    const cached = readings.current.get(town.name);
-    if (cached) {
-      setRoute(cached);
-      if (!stayOnDemo.current) setMode("ruta");
-      setRouteBusy(false);
-      return;
-    }
-    setRouteBusy(true);
-    const request = ++latestRequest.current;
-    try {
-      const reading = await routeWeek(town.lat, town.lon, town.name);
-      if (request !== latestRequest.current) return;
-      readings.current.set(town.name, reading);
-      setRoute(reading);
-      if (!stayOnDemo.current) setMode("ruta");
-      setError(null);
-    } catch {
-      if (request === latestRequest.current) setError("La lectura real de la RN9 no respondió. El escenario simulado sigue disponible.");
-    } finally {
-      if (request === latestRequest.current) setRouteBusy(false);
-    }
-  }
-
-  useEffect(() => {
-    pullRoute(TOWNS[0]);
-  }, []);
-
   return <Atlas catalog={catalog} scenario={scenario} frameIndex={frameIndex} playing={playing}
     mode={mode} zones={zones} selected={selected} narrative={narrative} knobs={knobs}
-    note={mode !== "scenario" && mode !== "ruta" ? manual?.note : undefined} error={error} connecting={connecting} meteoBusy={meteoBusy}
-    route={route} routeBusy={routeBusy} townName={townName}
+    note={mode !== "scenario" ? manual?.note : undefined} error={error} connecting={connecting} meteoBusy={meteoBusy}
     choose={chooseScenario} select={setSelectedId} step={goToFrame} toggle={togglePlay}
-    evaluate={runKnobs} meteo={pullMeteo} retry={retry}     pickTown={name => {
-      stayOnDemo.current = false;
-      setMode("ruta");
-      const town = TOWNS.find(item => item.name === name);
-      if (town) pullRoute(town);
-    }}/>;
+    evaluate={runKnobs} meteo={pullMeteo} retry={retry}/>;
 }

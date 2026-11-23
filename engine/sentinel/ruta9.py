@@ -8,6 +8,8 @@ Una semana en cero no hereda un corte viejo.
 
 from __future__ import annotations
 
+import datetime
+
 from sentinel.lugar import distance_m
 
 CORRIDOR_KM = 25.0
@@ -16,6 +18,20 @@ HISTORY_KM = 15.0
 RAIN_WEIGHT = 55.0
 HISTORY_CAP = 35.0
 SEASON_CAP = 20.0
+# Peor a la derecha. Atención está arriba de baja: un dato que falta no es calma.
+OPERATIONAL_RANK = {"baja": 0, "atencion": 1, "media": 2, "alta": 3, "muy_alta": 4}
+
+# De sur a norte, en el orden en que los cruza quien sale de Volcán.
+PUEBLOS: tuple[dict, ...] = (
+    {"name": "Volcán", "lat": -23.919, "lon": -65.463},
+    {"name": "Tumbaya", "lat": -23.857, "lon": -65.467},
+    {"name": "Purmamarca", "lat": -23.746, "lon": -65.499},
+    {"name": "Maimará", "lat": -23.624, "lon": -65.408},
+    {"name": "Tilcara", "lat": -23.577, "lon": -65.393},
+    {"name": "Huacalera", "lat": -23.436, "lon": -65.351},
+    {"name": "Uquía", "lat": -23.309, "lon": -65.356},
+    {"name": "Humahuaca", "lat": -23.205, "lon": -65.348},
+)
 
 CORTES: tuple[dict, ...] = (
     {
@@ -286,6 +302,7 @@ def evaluar_corte(
     peak_index: float | None,
     confidence: float,
     name: str,
+    period: str = "semana",
 ) -> dict:
     nearest = _nearest(lat, lon)
     if nearest["distance_km"] > CORRIDOR_KM:
@@ -307,12 +324,18 @@ def evaluar_corte(
     rain_scale = max(0.0, min(peak_index, 100.0)) / 100.0
     history_weight = min(HISTORY_CAP, 8.0 * _episodes_near(lat, lon))
     season_weight = _season_weight(month)
+    daily = period == "dia"
+    rain_id, rain_label, rain_scope, when = (
+        ("lluvia_dia", "Lluvia de ese día", "de ese día", "ese día")
+        if daily
+        else ("lluvia_semana", "Lluvia de esta semana", "de la semana", "esta semana")
+    )
     factors = (
         {
-            "id": "lluvia_semana",
-            "label": "Lluvia de esta semana",
+            "id": rain_id,
+            "label": rain_label,
             "points": round(RAIN_WEIGHT * rain_scale, 1),
-            "detail": f"El índice de la semana en el punto es {peak_index:.1f}. Aporta {RAIN_WEIGHT * rain_scale:.1f} pts.",
+            "detail": f"El índice {rain_scope} en el punto es {peak_index:.1f}. Aporta {RAIN_WEIGHT * rain_scale:.1f} pts.",
         },
         {
             "id": "historia_local",
@@ -320,14 +343,14 @@ def evaluar_corte(
             "points": round(history_weight * rain_scale, 1),
             "detail": (
                 f"{int(history_weight / 8)} episodio(s) a menos de {HISTORY_KM:.0f} km. "
-                "Esa historia solo pesa si esta semana llueve."
+                f"Esa historia solo pesa si {when} llueve."
             ),
         },
         {
             "id": "temporada",
             "label": "Mes en el catálogo",
             "points": round(season_weight * rain_scale, 1),
-            "detail": f"El mes {month} concentra parte de los cortes publicados. Sin lluvia de esta semana, el mes no suma.",
+            "detail": f"El mes {month} concentra parte de los cortes publicados. Sin lluvia {rain_scope}, el mes no suma.",
         },
     )
     chance = round(min(100.0, sum(item["points"] for item in factors)), 1)
@@ -374,7 +397,175 @@ def lectura_de_semana(lat: float, lon: float, name: str, week: dict) -> dict:
         "level": week.get("level"),
         "operational_level": week.get("operational_level"),
     }
+    reading["days"] = dias_de_corte(lat, lon, name, week) if reading["on_rn9"] else []
     return reading
+
+
+def dias_de_corte(lat: float, lon: float, name: str, week: dict) -> list[dict]:
+    """La misma regla de la semana, día por día."""
+    days = []
+    for day in week.get("days") or []:
+        date = day.get("date")
+        index = day.get("index")
+        if not date or index is None:
+            days.append(
+                {
+                    "date": date,
+                    "rain_mm": day.get("rain_mm"),
+                    "index": None,
+                    "chance": None,
+                    "band": None,
+                    "operational": "atencion",
+                    "factors": [],
+                    "note": "Día sin milímetros en la grilla. No se lee como ruta libre.",
+                }
+            )
+            continue
+        reading = evaluar_corte(
+            lat,
+            lon,
+            month=int(date[5:7]),
+            peak_index=index,
+            confidence=float(day.get("confidence") or 0),
+            name=name,
+            period="dia",
+        )
+        days.append(
+            {
+                "date": date,
+                "rain_mm": day.get("rain_mm"),
+                "index": index,
+                "chance": reading["chance"],
+                "band": reading["band"],
+                "operational": reading["operational"],
+                "factors": reading["factors"],
+                "note": None,
+            }
+        )
+    return days
+
+
+def pueblos() -> dict:
+    return {
+        "route": "RN9",
+        "order": "Sur a norte, desde Volcán.",
+        "pueblos": [
+            {**pueblo, "episodes_near": _episodes_near(pueblo["lat"], pueblo["lon"])}
+            for pueblo in PUEBLOS
+        ],
+    }
+
+
+def tramo(desde: str, hasta: str) -> list[dict]:
+    """Pueblos entre dos nombres, extremos incluidos, en orden de viaje."""
+    names = [pueblo["name"] for pueblo in PUEBLOS]
+    if desde not in names or hasta not in names:
+        raise ValueError("Pueblo fuera de la traza de la RN9 de la Quebrada.")
+    start, end = names.index(desde), names.index(hasta)
+    step = 1 if end >= start else -1
+    return [PUEBLOS[index] for index in range(start, end + step, step)]
+
+
+def combinar_viaje(desde: str, hasta: str, lecturas: list[dict]) -> dict:
+    """Un corte en cualquier pueblo corta el viaje: cada día manda el pueblo más comprometido."""
+    dates = sorted({day["date"] for reading in lecturas for day in reading.get("days") or [] if day.get("date")})
+    days = []
+    for date in dates:
+        towns = []
+        for reading in lecturas:
+            day = next((item for item in reading.get("days") or [] if item.get("date") == date), None)
+            towns.append(
+                {
+                    "name": reading["place"]["name"],
+                    "chance": day["chance"] if day else None,
+                    "operational": day["operational"] if day else "atencion",
+                    "rain_mm": day["rain_mm"] if day else None,
+                }
+            )
+        known = [town for town in towns if town["chance"] is not None]
+        complete = len(known) == len(towns)
+        driver = max(known, key=lambda town: town["chance"]) if known else None
+        operational = max((town["operational"] for town in towns), key=OPERATIONAL_RANK.__getitem__)
+        if not complete and operational == "baja":
+            operational = "atencion"
+        rains = [town["rain_mm"] for town in towns if town["rain_mm"] is not None]
+        days.append(
+            {
+                "date": date,
+                "chance": driver["chance"] if driver else None,
+                "operational": operational,
+                "driver": driver["name"] if driver else None,
+                "complete": complete,
+                "max_rain_mm": max(rains) if rains else None,
+                "towns": towns,
+            }
+        )
+    eligible = [day for day in days if day["complete"]]
+    best = min(eligible, key=lambda day: (day["chance"], day["date"])) if eligible else None
+    worst = (
+        max(days, key=lambda day: (OPERATIONAL_RANK[day["operational"]], day["chance"] or 0))
+        if days
+        else None
+    )
+    stops = [reading["place"]["name"] for reading in lecturas]
+    return {
+        "from": desde,
+        "to": hasta,
+        "stops": stops,
+        "chance": worst["chance"] if worst else None,
+        "operational": worst["operational"] if worst else "atencion",
+        "worst_day": worst["date"] if worst else None,
+        "best_day": best["date"] if best else None,
+        "headline": _trip_headline(desde, hasta, worst, best),
+        "days": days,
+        "towns": lecturas,
+        "cortes": _cortes_del_tramo(stops),
+        "limits": [
+            "La chance del viaje es la del pueblo más comprometido de cada día. No es una suma ni una probabilidad combinada.",
+            *_limits(),
+        ],
+    }
+
+
+def _trip_headline(desde: str, hasta: str, worst: dict | None, best: dict | None) -> str:
+    trip = f"en {desde}" if desde == hasta else f"de {desde} a {hasta}"
+    if worst is None:
+        return f"Sin la lluvia de la semana no se dice que la RN9 {trip} esté libre."
+    if worst["chance"] is None:
+        opening = f"Para viajar {trip} falta la lluvia de algún día. No se declara la ruta libre."
+    else:
+        opening = (
+            f"Para viajar {trip}, el día más comprometido es el {_fecha(worst['date'])}: "
+            f"chance {worst['chance']:.1f} en {worst['driver']}."
+        )
+    if best is None:
+        closing = " Ningún día tiene dato en todos los pueblos, así que no se marca un mejor día."
+    else:
+        closing = f" El día más tranquilo para salir es el {_fecha(best['date'])} (chance {best['chance']:.1f})."
+    return opening + closing + " No es un parte de Vialidad ni una orden de cancelar el viaje."
+
+
+_DIAS = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
+_MESES = ("enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto",
+          "septiembre", "octubre", "noviembre", "diciembre")
+
+
+def _fecha(iso: str) -> str:
+    try:
+        day = datetime.date.fromisoformat(iso)
+    except (TypeError, ValueError):
+        return str(iso)
+    return f"{_DIAS[day.weekday()]} {day.day} de {_MESES[day.month - 1]}"
+
+
+def _cortes_del_tramo(stops: list[str]) -> list[dict]:
+    points = [pueblo for pueblo in PUEBLOS if pueblo["name"] in stops]
+    found = [
+        item
+        for item in CORTES
+        if any(distance_m(p["lat"], p["lon"], item["lat"], item["lon"]) / 1000 <= HISTORY_KM for p in points)
+    ]
+    return sorted(found, key=lambda item: item["date"], reverse=True)
 
 
 def _empty_week(name: str, lat: float, lon: float, nearest: dict) -> dict:
